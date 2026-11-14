@@ -9,24 +9,30 @@ if (pageLoader) {
       typeof image.decode === "function" ? image.decode().catch(() => {}) : Promise.resolve()
     )
   );
-  const logoRevealFinished = logoImagesReady.then(() => {
-    pageLoader.classList.add("is-animating");
-    if (reduceLoaderMotion) return;
+  const logoRevealFinished = logoImagesReady.then(() => new Promise((resolve) => {
+    const fill = pageLoader.querySelector(".page-loader__mark-fill");
+    let holdStarted = false;
+    const holdFilledLogo = () => {
+      if (holdStarted) return;
+      holdStarted = true;
+      window.setTimeout(resolve, 550);
+    };
 
-    return new Promise((resolve) => {
-      const fill = pageLoader.querySelector(".page-loader__mark-fill");
-      let holdStarted = false;
-      const holdFilledLogo = () => {
-        if (holdStarted) return;
-        holdStarted = true;
-        window.setTimeout(resolve, 550);
-      };
+    if (reduceLoaderMotion) {
+      fill.style.clipPath = "inset(0)";
+      holdFilledLogo();
+      return;
+    }
 
-      fill.addEventListener("animationend", holdFilledLogo, { once: true });
-      // Safety net if the browser doesn't emit animationend for a cancelled animation.
-      window.setTimeout(holdFilledLogo, 3000);
-    });
-  });
+    // Register before starting the animation so a fast render can't outrun the listener.
+    fill.addEventListener("animationend", holdFilledLogo, { once: true });
+    // Safety net if the browser doesn't emit animationend for a cancelled animation.
+    window.setTimeout(holdFilledLogo, 4000);
+    // Give the browser two frames to paint the fully hidden starting state first.
+    requestAnimationFrame(() => requestAnimationFrame(() => {
+      pageLoader.classList.add("is-animating");
+    }));
+  }));
 
   let loaderDismissed = false;
   const dismissPageLoader = () => {
