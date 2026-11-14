@@ -1,3 +1,58 @@
+const pageLoader = document.querySelector(".page-loader");
+if (pageLoader) {
+  const reduceLoaderMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+  const pageReady = document.readyState === "complete"
+    ? Promise.resolve()
+    : new Promise((resolve) => window.addEventListener("load", resolve, { once: true }));
+  const logoImagesReady = Promise.all(
+    [...pageLoader.querySelectorAll("img")].map((image) =>
+      typeof image.decode === "function" ? image.decode().catch(() => {}) : Promise.resolve()
+    )
+  );
+  const logoRevealFinished = logoImagesReady.then(() => {
+    pageLoader.classList.add("is-animating");
+    if (reduceLoaderMotion) return;
+
+    return new Promise((resolve) => {
+      const fill = pageLoader.querySelector(".page-loader__mark-fill");
+      let holdStarted = false;
+      const holdFilledLogo = () => {
+        if (holdStarted) return;
+        holdStarted = true;
+        window.setTimeout(resolve, 550);
+      };
+
+      fill.addEventListener("animationend", holdFilledLogo, { once: true });
+      // Safety net if the browser doesn't emit animationend for a cancelled animation.
+      window.setTimeout(holdFilledLogo, 3000);
+    });
+  });
+
+  let loaderDismissed = false;
+  const dismissPageLoader = () => {
+    if (loaderDismissed) return;
+    loaderDismissed = true;
+    Promise.all([pageReady, logoRevealFinished]).then(() => {
+      if (!pageLoader.isConnected) return;
+      pageLoader.classList.add("is-leaving");
+      window.setTimeout(() => pageLoader.remove(), 700);
+    });
+  };
+
+  dismissPageLoader();
+
+  // Fallback prevents a slow or unavailable asset from leaving the overlay in place indefinitely.
+  window.setTimeout(() => {
+    if (!pageLoader.isConnected) return;
+    pageLoader.classList.add("is-leaving");
+    window.setTimeout(() => pageLoader.remove(), 700);
+  }, 10000);
+
+  window.addEventListener("pageshow", (event) => {
+    if (event.persisted) pageLoader.remove();
+  });
+}
+
 const clamp = (value, min = 0, max = 1) => Math.min(max, Math.max(min, value));
 const body = document.body;
 const header = document.querySelector(".site-header");
