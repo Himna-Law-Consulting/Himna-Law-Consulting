@@ -234,8 +234,8 @@ const roadmapTrack = roadmaps.desktop.querySelector(".roadmap-track");
 const roadmapSteps = [...roadmaps.desktop.querySelectorAll(".roadmap-step")];
 roadmapSteps.forEach((step) => {
   [...step.querySelectorAll(":scope > path")]
-    .find((path) => path.getAttribute("fill") === "black")
-    ?.classList.add("roadmap-step-caption");
+    .filter((path) => path.getAttribute("fill") === "black")
+    .forEach((path) => path.classList.add("roadmap-step-caption"));
 });
 const approachHeading = document.querySelector(".approach-heading--section");
 const approachSticky = document.querySelector(".approach-sticky");
